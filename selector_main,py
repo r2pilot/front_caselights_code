@@ -1,0 +1,169 @@
+# Trinket IO demo
+# Welcome to CircuitPython :)
+
+from digitalio import *
+from analogio import *
+from board import *
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+import dotstar
+import time
+import neopixel
+
+fan1pix = [3, 2, 1, 0, 11, 10, 9, 8, 7, 6, 5, 4]
+fan2pix = [12, 13, 14]
+fan3pix = 0
+
+
+# One pixel connected internally!
+dot = dotstar.DotStar(APA102_MOSI, APA102_SCK, 1, brightness=0.2)
+
+# Built in red LED
+led = DigitalInOut(D13)
+led.direction = Direction.OUTPUT
+
+# Digital input with pullup on D2
+button = DigitalInOut(D2)
+button.direction = Direction.INPUT
+button.pull = Pull.UP
+
+# NeoPixel strip (of 16 LEDs) connected on D4
+NUMPIXELS = 36
+neopixels = neopixel.NeoPixel(D4, NUMPIXELS, brightness=1.0, auto_write=False)
+
+# Used if we do HID output, see below
+kbd = Keyboard()
+
+######################### HELPERS ##############################
+
+# Helper to convert analog input to voltage
+def getVoltage(pin):
+    return (pin.value * 3.3) / 65536
+
+# Helper to give us a nice color swirl
+def wheel(pos):
+    # Input a value 0 to 255 to get a color value.
+    # The colours are a transition r - g - b - back to r.
+    if (pos < 0):
+        return (0, 0, 0)
+    if (pos > 255):
+        return (0, 0, 0)
+    if (pos < 85):
+        return (int(pos * 3), int(255 - (pos*3)), 0)
+    elif (pos < 170):
+        pos -= 85
+        return (int(255 - pos*3), 0, int(pos*3))
+    else:
+        pos -= 170
+        return (0, int(pos*3), int(255 - pos*3))
+
+def animation(style="solid", timing=0.0, color=(255, 255, 255)):
+    if 'off' in style:
+        print("Turning off")
+        for p in range(NUMPIXELS):
+            neopixels[p] = (0, 255, 0)
+            neopixels.show()
+            
+        for p in range(NUMPIXELS):
+            neopixels[p] = (0, 0, 0)
+            neopixels.show()
+        return
+            
+    if 'solid' in style:
+        for p in range(NUMPIXELS):
+            neopixels[p] = color
+            neopixels.show()
+            
+    if 'marquee' in style:
+        i = 0
+        while True:
+            dot[0] = wheel(i)
+            dot.show()
+
+            for p in range(NUMPIXELS):
+                if i % 2 == 0:
+                    if p % 2 == 0:
+                        neopixels[p] = color
+                    if p % 2 == 1:
+                        neopixels[p] = (0, 0, 0)
+                if i % 2 == 1:
+                    if p % 2 == 0:
+                        neopixels[p] = (0, 0, 0)
+                    if p % 2 == 1:
+                        neopixels[p] = color
+            neopixels.show()
+            time.sleep(timing)
+            i = (i+1) % 256  # run from 0 to 255
+    if 'fallchaser' in style:
+        i = 0
+        leadPix = 0
+        numFollowers = 0
+        while True:
+            for pix in fan1pix:
+                #print(pix)
+                neopixels[pix] = color
+                if pix == 0:
+                    neopixels[fan1pix[fan1pix[len(fan1pix)-1]]] = (0, 0, 0)
+                else:
+                    neopixels[pix-1] = (0, 0, 0)
+                for x in range(1, numFollowers):
+                    neopixels[pix-x] = (int(color[0]/x+1.0), int(color[1]/x+1.0), int(color[2]/x+1.0))
+                neopixels.show() # show the changes per loop        
+                time.sleep(timing)
+            for pix in fan2pix:
+                #print(pix)
+                neopixels[pix] = color
+                if pix == 0:
+                    neopixels[fan2pix[fan2pix[len(fan2pix)-1]]] = (0, 0, 0)
+                else:
+                    neopixels[pix-1] = (0, 0, 0)
+                for x in range(1, numFollowers):
+                    neopixels[pix-x] = (int(color[0]/x+1.0), int(color[1]/x+1.0), int(color[2]/x+1.0))
+                neopixels.show() # show the changes per loop        
+                time.sleep(timing)
+            for pix in fan3pix:
+                print(pix)
+                neopixels[pix] = color
+                if pix == 0:
+                    neopixels[34] = (0, 0, 0)
+                else:
+                    neopixels[pix-1] = (0, 0, 0)
+                for x in range(1, numFollowers):
+                    neopixels[pix-x] = (int(color[0]/x+1.0), int(color[1]/x+1.0), int(color[2]/x+1.0))
+                neopixels.show() # show the changes per loop        
+                time.sleep(timing)
+                
+    if 'chaser' in style:        
+        numFollowers = 3
+        while True:
+            for pix in fan1pix:
+                #print(pix)
+                neopixels[pix] = color
+                if pix == 0:
+                    neopixels[fan1pix[fan1pix[len(fan1pix)-1]]] = (0, 0, 0)
+                else:
+                    neopixels[pix-1] = (0, 0, 0)
+                for x in range(1, numFollowers):
+                    neopixels[pix-x] = (int(color[0]/x+1.0), int(color[1]/x+1.0), int(color[2]/x+1.0))
+                neopixels.show() # show the changes per loop        
+                time.sleep(timing)
+    if 'test' in style:
+        animation('off')            
+        for pix in range(0, NUMPIXELS):
+            neopixels[pix] = color
+            neopixels.show()
+            time.sleep(3)
+        return
+        
+
+######################### MAIN LOOP ##############################
+#while True:
+#    for p in range(NUMPIXELS):
+#            neopixels[p] = (0, 0, 0)
+#            neopixels.show()
+#animation('marquee', 0.1, (0, 255, 255))
+#time.sleep(3)
+#time.sleep(3)
+#time.sleep(3)
+#time.sleep(3)
+animation('off')
