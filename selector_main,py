@@ -61,7 +61,7 @@ def animation(style="solid", timing=0.0, color=(255, 255, 255)):
     if 'off' in style:
         print("Turning off")
         for p in range(NUMPIXELS):
-            neopixels[p] = (0, 255, 0)
+            neopixels[p] = (0, 0, 0)
             neopixels.show()
             
         for p in range(NUMPIXELS):
